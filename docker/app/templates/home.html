@@ -1,0 +1,42 @@
+<! DOCTYPE HTML>
+
+<html>
+    <head>
+        <title>Load Balancer Test</title>
+    <head>
+
+    <body>
+        <h2 id='heading'>A Test Site</h2>
+        <p id='intro'>This site does not server any big purpose. I just need a site to test my load balancer
+        with. And, that's why I'm using this. Ola!</p>
+        </br>
+        <p id='outro'></p>
+    </body>
+    <script type='text/javascript'>
+        document.addEventListener('readystatechange', event => {
+            if (event.target.readyState === 'interactive') {
+                xhr = new XMLHttpRequest();
+
+                xhr.addEventListener('load', event => {
+                    response = JSON.parse(xhr.response);
+
+                    document.getElementById('outro').innerText = 'Time is ' + response.time;
+
+                })
+
+                xhr.addEventListener('error', event => {
+                    window.alert('Something borked :(');
+                })
+
+                xhr.open('POST', '/time/');
+
+                xhr.responeType = 'json';
+                
+                xhr.setRequestHeader('Content-Type',
+                    'application/x-www-form-urlencoded');
+
+                // Call the post data endpoint
+                xhr.send();
+            }
+        })   
+    </script>
