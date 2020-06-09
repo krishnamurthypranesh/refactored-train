@@ -39,12 +39,12 @@ RUN ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled
 RUN mv /etc/nginx/sites-enabled/default ~/
 
 # Reload nginx
-RUN /usr/sbin/nginx
-
 RUN mkdir /var/log/uwsgi/
 
-RUN cd /app/ && chmod 777 .
+# RUN /usr/local/bin/uwsgi --ini /app/app.ini --logto /var/log/uwsgi/access.log --callable app --pidfile=/var/run/uwsgi.pid
 
-CMD /usr/local/bin/uwsgi --ini /app/app.ini --logto /var/log/uwsgi/access.log --callable app --pidfile=/var/run/uwsgi.pid
+# RUN chown www-data:www-data /app/load_balancer.sock
+
+CMD nginx && /usr/local/bin/uwsgi --ini /app/app.ini --logto /var/log/uwsgi/access.log --callable app --pidfile=/var/run/uwsgi.pid
 
 EXPOSE 80
