@@ -25,4 +25,4 @@ Building a python based load balancer to understand how loads are balanced.
 	- Get app server up and running.
 	- Write socket for load balancer
 # To-do
-	- 
+	-
