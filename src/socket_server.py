@@ -1,6 +1,8 @@
 import socket
 import asyncio
 import selectors
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from helpers import accept_wrapper, service_connection
 
@@ -18,12 +20,19 @@ print('[LISTENING]', (HOST, PORT))
 lsock.setblocking(False)
 sel.register(lsock, selectors.EVENT_READ, data=None)
 
-
+i = 0
 while True:
-    loop = asyncio.get_event_loop()
     events = sel.select(timeout=10)
+    loop = asyncio.get_event_loop()
+    tasks = []
     for key, mask in events:
         if key.data is None:
             accept_wrapper(key.fileobj, sel)
         else:
-            service_connection(key, mask, sel)
+            tasks.append(service_connection(key, mask, sel))
+
+    if len(tasks) > 0:
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+    print('[ACTIVE CONNECTIONS] ', len(events))
+    i += 1
