@@ -1,3 +1,4 @@
+import time
 import socket
 import asyncio
 import selectors
@@ -20,7 +21,16 @@ print('[LISTENING]', (HOST, PORT))
 lsock.setblocking(False)
 sel.register(lsock, selectors.EVENT_READ, data=None)
 
-i = 0
+def start_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+worker_loop = asyncio.new_event_loop()
+worker_thread = threading.Thread(target=start_loop, args=(worker_loop,))
+worker_thread.start()
+
+last_print = 0
+
 while True:
     events = sel.select(timeout=10)
     loop = asyncio.get_event_loop()
@@ -29,10 +39,9 @@ while True:
         if key.data is None:
             accept_wrapper(key.fileobj, sel)
         else:
-            tasks.append(service_connection(key, mask, sel))
+            asyncio.run_coroutine_threadsafe(service_connection(key, mask,
+                sel), worker_loop)
 
-    if len(tasks) > 0:
-        loop.run_until_complete(asyncio.gather(*tasks))
-
-    print('[ACTIVE CONNECTIONS] ', len(events))
-    i += 1
+    if time.time() - last_print > 10:
+        print('[ACTIVE CONNECTIONS] ', len(events))
+        last_print = time.time()

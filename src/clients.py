@@ -8,19 +8,19 @@ URL = 'http://localhost:5000/'
 
 async def fetch_stuff(url, i):
     async with ClientSession() as session:
-        import pdb; pdb.set_trace()
         async with session.get(url) as response:
             print('Here')
             start = time.time()
             response = await response.read()
-            print('It\'s {i} and response after: {} seconds'.format(
-                time.time() - start))
+            print('It\'s {} and response after: {} seconds'.format(
+                i, time.time() - start))
+            print(len(response))
         return response
 
 loop = asyncio.get_event_loop()
 
 tasks = []
-for i in range(1):
+for i in range(20):
     task = asyncio.ensure_future(fetch_stuff(URL, i))
     tasks.append(task)
 
