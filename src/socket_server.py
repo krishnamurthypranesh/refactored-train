@@ -3,7 +3,7 @@ import socket
 import asyncio
 import selectors
 import threading
-from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 
 from helpers import accept_wrapper, service_connection
 
@@ -21,13 +21,10 @@ print('[LISTENING]', (HOST, PORT))
 lsock.setblocking(False)
 sel.register(lsock, selectors.EVENT_READ, data=None)
 
-def start_loop(loop):
+def bootstrap(tasks):
+    loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_forever()
-
-worker_loop = asyncio.new_event_loop()
-worker_thread = threading.Thread(target=start_loop, args=(worker_loop,))
-worker_thread.start()
+    loop.run_until_complete(tasks)
 
 last_print = 0
 
@@ -39,8 +36,10 @@ while True:
         if key.data is None:
             accept_wrapper(key.fileobj, sel)
         else:
-            asyncio.run_coroutine_threadsafe(service_connection(key, mask,
-                sel), worker_loop)
+            tasks.append(service_connection(key, mask, sel))
+    if len(tasks) > 0:
+        process = multiprocessing.Process(target=bootstrap, args=(tasks))
+        process.start()
 
     if time.time() - last_print > 10:
         print('[ACTIVE CONNECTIONS] ', len(events))
