@@ -1,11 +1,10 @@
 import time
+import random
 import socket
 import asyncio
 import selectors
 import threading
-import multiprocessing
-
-from concurrent.futures import ProcessPoolExecutor
+from string import ascii_lowercase as a2z
 
 from helpers import accept_wrapper, service_connection
 
@@ -31,7 +30,7 @@ def bootstrap(tasks):
     asyncio.gather(*tasks)
 
 last_print = 0
-MAX_PROCESSES = 4
+MAX_THREADS = 4
 processes = []
 
 # this works
@@ -47,10 +46,21 @@ processes = []
 # the task counters. use fut.add_done_callback(functools.partial()) to achieve
 # this.
 
-loop = asyncio.get_event_loop()
-thr = threading.Thread(target=loop.run_forever)
-thr.daemon = True
-thr.start()
+# multithreaded event loops seem to be failing. I think it's because of the
+# global interpreter lock. A workaround is to use multiprocessing. Back to
+# square one again. FCUK
+loops = dict()
+for i in range(MAX_THREADS):
+    tid = ''.join([str(random.choice(list(a2z) + list(range(10))))
+        for i in range(10)])
+    loops[tid] = {'count': 0, 'loop': None}
+    loop = asyncio.new_event_loop()
+    thr = threading.Thread(target=loop.run_forever)
+    thr.daemon = True
+    thr.start()
+    loops[tid]['loop'] = loop
+
+print(loops)
 
 task_count = 0
 while True:
@@ -60,11 +70,19 @@ while True:
         if key.data is None:
             accept_wrapper(key.fileobj, sel)
         else:
+            for k, v in loops.items():
+                if v['count'] > 4:
+                    continue
+                else:
+                    _loop = v['loop']
+                    _loop_id = k
+                    break
             fut = asyncio.run_coroutine_threadsafe(
-                    service_connection(key, mask, sel), loop)
-            task_count += 1
-            print(f'Number of tasks: {task_count}')
-    
+                    service_connection(key, mask, sel), _loop)
+            loops[k]['count'] += 1
+
+
     if time.time() - last_print > 10:
+        print(f'Loop statuses: {loops}') 
         print('[ACTIVE CONNECTIONS] ', len(events))
         last_print = time.time()
