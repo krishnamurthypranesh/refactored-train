@@ -20,7 +20,7 @@ async def fetch_stuff(url, i):
 loop = asyncio.get_event_loop()
 
 tasks = []
-for i in range(10):
+for i in range(1):
     task = asyncio.ensure_future(fetch_stuff(URL, i))
     tasks.append(task)
 
